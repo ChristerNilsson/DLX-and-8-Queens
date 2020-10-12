@@ -1,5 +1,7 @@
-constraints = null
+options = null
+items = null 
 snapshots = null
+
 current = 0
 hiliteOption = ''
 hiliteItem = ''
@@ -20,13 +22,15 @@ class Chessboard
 
 	count : (i,j) -> # calculates list counts for findBestColumn
 		j = 7-j
-		key = 'abcdefgh'[i] + '12345678'[j]
-		key1 = 'C' + 'ABCDEFGH'[i]
-		key2 = 'R' + '12345678'[j]
+		option = 'abcdefgh'[i] + '12345678'[j]
+		item1 = 'C' + 'ABCDEFGH'[i]
+		item2 = 'R' + '12345678'[j]
 		entries = snapshots[current].entries
-		if entries[key1] and entries[key2]
-			a = if key in entries[key1] then entries[key1].length else 0
-			b = if key in entries[key2] then entries[key2].length else 0
+		if entries[item1] and entries[item2]
+			options1 = entries[item1].split ' '
+			options2 = entries[item2].split ' '
+			a = if option in options1 then options1.length else 0
+			b = if option in options2 then options2.length else 0
 			if a==0 or b==0 then return ''
 			min a,b
 		else
@@ -67,20 +71,21 @@ class Chessboard
 		line @x+@R*(i1+0.5),@y+@R*(j1+0.5),@x+@R*(i2+0.5),@y+@R*(j2+0.5)
 
 	hiliteItem : ->
-		key = hiliteItem
-		if key == '' then return
+		item = hiliteItem
+		if item == '' then return
+		itemType = item[0]
 		stroke 255,255,0,128
 		strokeWeight 25
-		if key[0] in "CR"
-			i = 'ABCDEFGH'.indexOf key[1]
-			j = '12345678'.indexOf key[1]
-			if key[0] == 'C' then @drawLine i,0,i,7
-			if key[0] == 'R' then @drawLine 0,7-j,7,7-j
-		if key[0] in "AB"
-			i = 'ABCDEFGHIJKLMNO'.indexOf key[1]
-			if key[0] == 'A'
+		if itemType in "CR"
+			i = 'ABCDEFGH'.indexOf item[1]
+			j = '12345678'.indexOf item[1]
+			if itemType == 'C' then @drawLine i,0,i,7
+			if itemType == 'R' then @drawLine 0,7-j,7,7-j
+		if itemType in "AB"
+			i = 'ABCDEFGHIJKLMNO'.indexOf item[1]
+			if itemType == 'A'
 				if i < 7 then @drawLine 0,7-i,i,7 else @drawLine i-7,0, 7,14-i
-			if key[0] == 'B'
+			if itemType == 'B'
 				if i < 7 then @drawLine 7,7-i,7-i,7 else @drawLine 0,14-i,14-i,0
 		noStroke()
 		strokeWeight 1
@@ -96,22 +101,14 @@ class Chessboard
 class Expanded
 	constructor : (@x,@y) ->
 
-	drawExpanded : (offset, entries, constraints, items) ->
-		fill 'black'
+	drawExpanded : (offset, entries) ->
 		textSize 16
-		keys = _.keys entries
-		stroke 'black'
-		for key,i in keys
-			y = 100+15*i
-
 		textAlign CENTER,CENTER
-		for key,i in constraints
+		for item,i in items
 			x = offset + 25 + 25 * i
-			stroke 'black'
-			if items[key]
-				options = items[key] #.split ' '
-				for option in options
-					j = keys.indexOf option
+			if entries[item]
+				for option in entries[item].split ' '
+					j = options.indexOf option
 					y = 100+15*j
 					stroke 128+64
 					line x,y-8,x,y+8
@@ -120,25 +117,24 @@ class Expanded
 					fill if hiliteOption == option then 'white' else 'black'
 					text option,x,y+2
 
-	drawLinks : (offset, entries, constraints, items) ->
+	drawLinks : (offset, entries) ->
 		fill 'black'
 		textSize 12
 		keys = _.keys entries
 		stroke 'black'
 
-		for key,i in keys
+		for key,i in options
 			y = 100+15*i
 			line 25,y,width-200,y
 
-		for key,i in constraints
-			x = offset + 25 + 25 * i
-			stroke 'black'
+		for key,i in items
+			x = offset + 25 * (i+1)
 			line x,100,x,1045
 
 	draw : ->
 		snapshot = snapshots[current]
-		@drawLinks    0*25,  constraints.entries, constraints.itemNames, snapshot.entries
-		@drawExpanded 0*25,  constraints.entries, constraints.itemNames, snapshot.entries
+		@drawLinks    0, snapshot.entries
+		@drawExpanded 0, snapshot.entries
 
 class Explanation 
 	constructor : (@x,@y) ->
@@ -164,18 +160,15 @@ class Items
 	constructor : (@xp,@yp) ->
 
 	draw : ->
-		textSize 14
-		textAlign CENTER,CENTER
-		snapshot = snapshots[current]	
-		@drawOptions 'Dancing Links solving Eight Queens', @xp, @yp, constraints.itemNames, snapshot.entries
+		@drawOptions 'Dancing Links solving Eight Queens', snapshots[current].entries
 
-	drawOptions : (prompt, x, y, itemNames, entries) ->
+	drawOptions : (prompt, entries) ->
 
 		textAlign LEFT,CENTER
 		textSize 32
 		fill 'black'
 		noStroke()
-		text prompt, x+15,y
+		text prompt, @xp+15,@yp
 
 		stroke 'yellow'
 		strokeWeight 1
@@ -186,22 +179,21 @@ class Items
 		textAlign CENTER,CENTER
 		textSize 14
 		fill 'yellow'
-		for itemName,i in itemNames
-			text itemName,x+25+25*i,y+25	
+		for item,i in items
+			text item,@xp+25+25*i,@yp+25	
 
 		for key,row of entries # "CA"
 			if MODE == 0
-				i = itemNames.indexOf key
-				options = row
-				for option,j in options
+				i = items.indexOf key
+				for option,j in row.split ' '
 					fill if option == hiliteOption then 'white' else 'black'
-					text option,x+25+25*i,y+50+25*j
+					text option,@xp+25+25*i,@yp+50+25*j
 
 	mouseMoved : ->
 		if @yp < mouseY < @yp+250
 			snapshot = snapshots[current]
-			for key,index in constraints.itemNames 
-				if @xp+25*(index+0.5) < mouseX < @xp+25*(index+1.5) then hiliteItem = key
+			for item,index in items
+				if @xp+25*(index+0.5) < mouseX < @xp+25*(index+1.5) then hiliteItem = item
 
 class Snapshots
 	constructor : (@x,@y) ->
@@ -229,12 +221,12 @@ preload = ->
 	fetch "8queens.json"
 		.then (response) => response.json() 
 		.then (json) => 
-			{constraints,snapshots} = json
-			constraints.itemNames = constraints.itemNames.split ' '
+			{options,items,snapshots} = json
+			options = options.split ' '
+			items = items.split ' '
 			for snapshot in snapshots
 				snapshot.choices = if snapshot.choices == '' then  [] else snapshot.choices.split ' '
 			console.log json
-
 
 setup = ->
 	createCanvas 1350,1080
@@ -242,12 +234,12 @@ setup = ->
 	chessboard = new Chessboard 100, 400
 	objSnapshots = new Snapshots 1180, 10
 	explanation = new Explanation 550,400
-	objItems = new Items 0*25, 20
+	objItems = new Items 0, 20
 	expanded = new Expanded 20,20
 
 draw = ->
 	background 128+64
-	if not constraints then return
+	if not options then return
 	objItems.draw()
 	if MODE == 0 then chessboard.draw()
 	if MODE == 0 then explanation.draw()
