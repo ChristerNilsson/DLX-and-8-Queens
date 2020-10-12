@@ -139,17 +139,20 @@ class Expanded
 class Explanation 
 	constructor : (@x,@y) ->
 		@explanations = []
-		@explanations.push 'There are 16 primary items, 8 columns and 8 rows\n\nThe matrix is actually 64 options x 46 items\nIt is shown compressed here\nPress Space or click to toggle View Mode\n\nItem CA is chosen\nOption a1 is first\nPress Right Arrow to see option a1 selected'
-		@explanations.push 'Yellow texts are mouse aware\nItems CA, R1, AA and BH are hidden\nItem CB is chosen\nOption b3 is selected'
-		@explanations.push 'Items CB and R3 are hidden\nShortest item is CC\nOption c5 is selected'
-		@explanations.push "Items CC and R5 are hidden\nThe 'best item' is considered to be an item that minimizes the number of remaining choices.\nIf there are several candidates, we choose the leftmost\nShortest item is CF\nOption f4 is selected"
-		@explanations.push 'Items CF and R4 are hidden\nShortest item is CH\nOption h7 is selected'
-		@explanations.push 'Items CH and R7 are hidden\nR6 is missing => h7 must backtrack\nf4 also backtracks as CF has no options left'
-		@explanations.push 'c5 is backtracked and replaced by c6\nd2 is selected'
+		@explanations.push 'There are 16 primary items, 8 columns and 8 rows\n\nThe matrix is actually 64 options by 46 items\nIt is shown compressed here\nPress Space or click to toggle View Mode\n\nItem CA is chosen\nOption a1 is first\nPress Right Arrow to see option a1 selected'
+		@explanations.push 'Yellow texts are mouse aware\n\nItems CA, R1, AA and BH are hidden\nItem CB is chosen\nOption b3 is selected'
+		@explanations.push 'Items CB, R3, AD and BI are hidden\nShortest item is CC\nOption c5 is selected'
+		@explanations.push "Items CC, R5, AG and BJ are hidden\n\nThe 'best item' is considered to be an item that minimizes the number of remaining choices.\nIf there are several candidates, we choose the leftmost\n\nShortest item is CF\nOption f4 is selected"
+		@explanations.push 'Items CF, R4, AI and BF are hidden\nShortest item is CH\nOption h7 is selected'
+		@explanations.push 'Items CH, R7, AN and BG are hidden\nR6 is missing => h7 must backtrack\nf4 also backtracks as CF has no options left'
+		@explanations.push 'Items CF, CH, R4, R5, R7, AE, AG, AI, AJ, AM, AN, BB, BD, BF, BG and BJ are unhidden\nc5 is backtracked and replaced by c6\nd2 is selected'
 		@explanations.push 'Items CD and R2 are hidden\ne7 is selected'
 		@explanations.push 'Items CE and R7 are hidden\nR8 is empty => e7 is backtracked'
 		@explanations.push "d2 is backtracked and replaced by d8"
 		@explanations.push "The JSON data structure is available in the browser using Ctrl+Shift+I"
+		@explanations.push "Ordering the entries starting with the center of the chessboard,\nmakes it possible to find the solution in eight snapshots instead of 64"
+		@explanations.push "Skipping the four corners can be done by deleting items AA, AO, BA and BO"
+		@explanations.push "Selecting the first available item instead of the shortest,\nincreases the number of snapshots from 64 to 114"
 	draw : ->
 		textAlign LEFT,TOP
 		textSize 14
@@ -207,11 +210,11 @@ class Snapshots
 			text j,@x-2,2+@y+16*j
 			fill if current == j then 'yellow' else 'black'
 			rect @x,@y+16*j,20*8,16
-			textAlign LEFT,TOP
+			textAlign CENTER,TOP
 			fill 'yellow'
 			for choice,i in snapshot.choices
 				fill if current != j then 'yellow' else 'green'
-				text choice,3+@x+20*i,2+@y+16*j
+				text choice,10+@x+20*i,2+@y+16*j
 
 	mousePressed : ->
 		index = Math.floor (mouseY - @y)/16
@@ -221,12 +224,12 @@ preload = ->
 	fetch "8queens.json"
 		.then (response) => response.json() 
 		.then (json) => 
+			console.log json
 			{options,items,snapshots} = json
 			options = options.split ' '
 			items = items.split ' '
 			for snapshot in snapshots
 				snapshot.choices = if snapshot.choices == '' then  [] else snapshot.choices.split ' '
-			console.log json
 
 setup = ->
 	createCanvas 1350,1080
