@@ -9,12 +9,27 @@ hiliteItem = ''
 chessboard = null
 objSnapshots = null
 explanation = null
+objHeader = null
 objItems = null
 expanded = null
 
 MODE = 0 # 0=compact 1=expanded
 range = null 
 circle = (x, y, r) -> ellipse x, y, 2*r, 2*r
+
+class Button
+	constructor : (@prompt,@x,@y,@click) ->
+		@w = 75
+		@h = 30
+	draw : ->
+		rectMode CENTER
+		fill 'white'
+		rect @x,@y,@w,@h
+		rectMode CORNER
+		fill 'black'
+		textAlign CENTER,CENTER
+		text @prompt,@x,@y
+	inside : -> @x-@w/2 < mouseX < @x+@w/2 and @y-@h/2 < mouseY < @y+@h/2
 
 class Chessboard
 	constructor : (@x,@y) ->
@@ -101,15 +116,15 @@ class Chessboard
 class Expanded
 	constructor : (@x,@y) ->
 
-	drawExpanded : (offset, entries) ->
+	drawExpanded : (entries) ->
 		textSize 16
 		textAlign CENTER,CENTER
 		for item,i in items
-			x = offset + 25 + 25 * i
+			x = 25 + 25 * i
 			if entries[item]
 				for option in entries[item].split ' '
 					j = options.indexOf option
-					y = 100+15*j
+					y = @y+16*j
 					stroke 128+64
 					line x,y-8,x,y+8
 					line x-10,y,x+8,y
@@ -117,31 +132,31 @@ class Expanded
 					fill if hiliteOption == option then 'white' else 'black'
 					text option,x,y+2
 
-	drawLinks : (offset, entries) ->
+	drawLinks : (entries) ->
 		fill 'black'
 		textSize 12
 		keys = _.keys entries
 		stroke 'black'
 
 		for key,i in options
-			y = 100+15*i
+			y = @y+16*i
 			line 25,y,width-200,y
 
 		for key,i in items
-			x = offset + 25 * (i+1)
-			line x,100,x,1045
+			x = 25 * (i+1)
+			line x,@y,x,@y+63*16
 
 	draw : ->
 		snapshot = snapshots[current]
-		@drawLinks    0, snapshot.entries
-		@drawExpanded 0, snapshot.entries
+		@drawLinks    snapshot.entries
+		@drawExpanded snapshot.entries
 
 class Explanation 
 	constructor : (@x,@y) ->
 		@explanations = []
-		@explanations.push 'There are 16 primary items, 8 columns and 8 rows\n\nThe matrix is actually 64 options by 46 items\nIt is shown compressed here\nPress Space or click to toggle View Mode\n\nItem CA is chosen\nOption a1 is first\nPress Right Arrow to see option a1 selected'
+		@explanations.push 'There are 16 primary items, 8 columns and 8 rows\n\nThe matrix is actually 64 options by 46 items\nIt is shown compressed here\nClick View to toggle View Mode\n\nItem CA is chosen\nOption a1 is first\n\nClick Next to see option a1 selected'
 		@explanations.push 'Yellow texts are mouse aware\n\nItems CA, R1, AA and BH are hidden\nItem CB is chosen\nOption b3 is selected'
-		@explanations.push 'Items CB, R3, AD and BI are hidden\nShortest item is CC\nOption c5 is selected'
+		@explanations.push 'Items CB, R3, AD and BI are hidden\nShortest item is CC\nOption c5 is selected\nWhen c5 later is backtracked, in snapshot 6,\n  it will be replaced with the other options in the item CC. (c6, c7 and c8)\n'
 		@explanations.push "Items CC, R5, AG and BJ are hidden\n\nThe 'best item' is considered to be an item that minimizes the number of remaining choices.\nIf there are several candidates, we choose the leftmost\n\nShortest item is CF\nOption f4 is selected"
 		@explanations.push 'Items CF, R4, AI and BF are hidden\nShortest item is CH\nOption h7 is selected'
 		@explanations.push 'Items CH, R7, AN and BG are hidden\nR6 is missing => h7 must backtrack\nf4 also backtracks as CF has no options left'
@@ -153,31 +168,36 @@ class Explanation
 		@explanations.push "Ordering the entries starting with the center of the chessboard,\nmakes it possible to find the solution in eight snapshots instead of 64"
 		@explanations.push "Skipping the four corners can be done by deleting items AA, AO, BA and BO"
 		@explanations.push "Selecting the first available item instead of the shortest,\nincreases the number of snapshots from 64 to 114"
+		@explanations.push "It is just a coincidence that the number of snapshots\nand the number of options both have the value 64"
 	draw : ->
 		textAlign LEFT,TOP
 		textSize 14
 		fill 'black'
 		text @explanations[current],@x,@y
 	
-class Items
+class Header
 	constructor : (@xp,@yp) ->
-
+		@buttons = []
+		@buttons.push new Button "View",@xp+1134,@yp-2, -> MODE = 1 - MODE
+		@buttons.push new Button "Prev",@xp+1218,@yp-2, -> if current > 0 then current--
+		@buttons.push new Button "Next",@xp+1302,@yp-2, -> if current < snapshots.length-1 then current++
+		
 	draw : ->
-		@drawOptions 'Dancing Links solving Eight Queens', snapshots[current].entries
-
-	drawOptions : (prompt, entries) ->
-
 		textAlign LEFT,CENTER
 		textSize 32
 		fill 'black'
 		noStroke()
-		text prompt, @xp+15,@yp
+		text 'Dancing Links solving Eight Queens', @xp+15,@yp
+		textAlign RIGHT,CENTER
+		textSize 16
+		snapshot = snapshots[current]
+		entries = _.flatten (entry.split ' ' for key,entry of snapshot.entries)
+		optionCount = _.unique(entries).length
 
-		stroke 'yellow'
-		strokeWeight 1
-		#line offset+25*0.7,60,offset+w+10,60
-		#line offset+25*0.7,60,offset+w+10,60
-		noStroke()
+		for button in @buttons
+			button.draw()
+
+		text "#{_.size(snapshot.entries)} items, #{entries.length} entries, #{optionCount} options", 1150-200, @yp
 
 		textAlign CENTER,CENTER
 		textSize 14
@@ -185,18 +205,37 @@ class Items
 		for item,i in items
 			text item,@xp+25+25*i,@yp+25	
 
-		for key,row of entries # "CA"
-			if MODE == 0
-				i = items.indexOf key
-				for option,j in row.split ' '
-					fill if option == hiliteOption then 'white' else 'black'
-					text option,@xp+25+25*i,@yp+50+25*j
+	mousePressed : ->
+		console.log @prompt
+		for button in @buttons
+			if button.inside() then button.click()
 
 	mouseMoved : ->
 		if @yp < mouseY < @yp+250
 			snapshot = snapshots[current]
 			for item,index in items
 				if @xp+25*(index+0.5) < mouseX < @xp+25*(index+1.5) then hiliteItem = item
+
+class Items
+	constructor : (@xp,@yp) ->
+
+	draw : ->
+		@drawOptions snapshots[current].entries
+
+	drawOptions : (entries) ->
+
+		stroke 'yellow'
+		strokeWeight 1
+		#line offset+25*0.7,60,offset+w+10,60
+		#line offset+25*0.7,60,offset+w+10,60
+		noStroke()
+
+		for key,row of entries # "CA"
+			if MODE == 0
+				i = items.indexOf key
+				for option,j in row.split ' '
+					fill if option == hiliteOption then 'white' else 'black'
+					text option,@xp+25+25*i,@yp+50+25*j
 
 class Snapshots
 	constructor : (@x,@y) ->
@@ -217,6 +256,7 @@ class Snapshots
 				text choice,10+@x+20*i,2+@y+16*j
 
 	mousePressed : ->
+		if mouseX < width-200 + 30 then return 
 		index = Math.floor (mouseY - @y)/16
 		if 0 <= index < 65 then current = index 
 
@@ -230,19 +270,22 @@ preload = ->
 			items = items.split ' '
 			for snapshot in snapshots
 				snapshot.choices = if snapshot.choices == '' then  [] else snapshot.choices.split ' '
+			objHeader = new Header 0,20
 
 setup = ->
 	createCanvas 1350,1080
 	range = _.range
 	chessboard = new Chessboard 100, 400
-	objSnapshots = new Snapshots 1180, 10
+	objSnapshots = new Snapshots 1180, 38
 	explanation = new Explanation 550,400
-	objItems = new Items 0, 20
-	expanded = new Expanded 20,20
+	objItems = new Items 0,20
+	expanded = new Expanded 20,61
 
 draw = ->
+	if not objHeader then return
 	background 128+64
 	if not options then return
+	objHeader.draw()
 	objItems.draw()
 	if MODE == 0 then chessboard.draw()
 	if MODE == 0 then explanation.draw()
@@ -259,13 +302,12 @@ keyPressed = ->
 	if current >= snapshots.length then current = snapshots.length-1
 
 mousePressed = ->
-	if mouseX > width-200 + 30
-		objSnapshots.mousePressed()
-	else
-		MODE = 1 - MODE
+	objSnapshots.mousePressed()
+	objHeader.mousePressed()
 
 mouseMoved = ->
-	hiliteItem = '' # CA
-	hiliteOption = '' # a1
-	objItems.mouseMoved()
-	if MODE == 0 then chessboard.mouseMoved()
+	if objHeader
+		hiliteItem = '' # CA
+		hiliteOption = '' # a1
+		objHeader.mouseMoved()
+		if MODE == 0 then chessboard.mouseMoved()
