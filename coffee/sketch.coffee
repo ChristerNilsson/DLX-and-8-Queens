@@ -135,16 +135,19 @@ class Expanded
 	drawLinks : (entries) ->
 		fill 'black'
 		textSize 12
-		keys = _.keys entries
+		itemKeys = _.keys entries
+		optionKeys = _.flatten (option for option in (item.split ' ' for key,item of entries))
 		stroke 'black'
 
 		for key,i in options
-			y = @y+16*i
-			line 25,y,width-200,y
+			if key in optionKeys
+				y = @y+16*i
+				line 25,y,width-200,y
 
 		for key,i in items
-			x = 25 * (i+1)
-			line x,@y,x,@y+63*16
+			if key in itemKeys
+				x = 25 * (i+1)
+				line x,@y,x,@y+63*16
 
 	draw : ->
 		snapshot = snapshots[current]
@@ -169,6 +172,7 @@ class Explanation
 		@explanations.push "Skipping the four corners can be done by deleting items AA, AO, BA and BO"
 		@explanations.push "Selecting the first available item instead of the shortest,\nincreases the number of snapshots from 64 to 114"
 		@explanations.push "It is just a coincidence that the number of snapshots\nand the number of options both have the value 64"
+		@explanations.push "Space, Up Arrow and Down Arrow also works"
 	draw : ->
 		textAlign LEFT,TOP
 		textSize 14
@@ -179,9 +183,8 @@ class Header
 	constructor : (@xp,@yp) ->
 		@buttons = []
 		@buttons.push new Button "View",@xp+1134,@yp-2, -> MODE = 1 - MODE
-		@buttons.push new Button "Prev",@xp+1218,@yp-2, -> if current > 0 then current--
-		@buttons.push new Button "Next",@xp+1302,@yp-2, -> if current < snapshots.length-1 then current++
-		
+		@buttons.push new Button "Prev",@xp+1218,@yp-2, -> current = (current-1) %% snapshots.length
+		@buttons.push new Button "Next",@xp+1302,@yp-2, -> current = (current+1) %% snapshots.length
 	draw : ->
 		textAlign LEFT,CENTER
 		textSize 32
@@ -194,8 +197,7 @@ class Header
 		entries = _.flatten (entry.split ' ' for key,entry of snapshot.entries)
 		optionCount = _.unique(entries).length
 
-		for button in @buttons
-			button.draw()
+		button.draw() for button in @buttons
 
 		text "#{_.size(snapshot.entries)} items, #{entries.length} entries, #{optionCount} options", 1150-200, @yp
 
@@ -293,13 +295,9 @@ draw = ->
 	if MODE == 1 then expanded.draw()
 
 keyPressed = ->
-	if key==' '
-		MODE = 1 - MODE
-		return
-	if key in ['ArrowLeft','ArrowUp'] then current--
-	if key in ['ArrowRight','ArrowDown'] then current++
-	if current < 0 then current = 0
-	if current >= snapshots.length then current = snapshots.length-1
+	if key==' ' then MODE = 1 - MODE
+	if key in ['ArrowLeft','ArrowUp'] then current = (current-1) %% snapshots.length
+	if key in ['ArrowRight','ArrowDown'] then current = (current+1) %% snapshots.length
 
 mousePressed = ->
 	objSnapshots.mousePressed()

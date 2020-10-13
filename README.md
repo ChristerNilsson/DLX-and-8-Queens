@@ -66,7 +66,7 @@ snapshots:
 
 ## Related links
 
-* [Stanford Lecture: Don Knuth—"Dancing Links" (2018)](https://www.youtube.com/watch?v=_cR9zDlvP88&t=3251s&ab_channel=stanfordonline)
+* [Stanford Lecture: Don Knuth—"Dancing Links" (2018)](https://www.youtube.com/watch?v=_cR9zDlvP88&feature=youtu.be&t=3&ab_channel=stanfordonline)
 * [Original paper](https://arxiv.org/pdf/cs/0011047.pdf)
 * [Knuth's Algorithm X](https://en.wikipedia.org/wiki/Knuth%27s_Algorithm_X)
 * [Exact Cover](https://en.wikipedia.org/wiki/Exact_cover)
