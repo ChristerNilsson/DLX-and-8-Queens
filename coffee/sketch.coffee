@@ -120,7 +120,7 @@ class Expanded
 		textSize 16
 		textAlign CENTER,CENTER
 		for item,i in items
-			x = 25 + 25 * i
+			x = @x + 25 * i
 			if entries[item]
 				for option in entries[item].split ' '
 					j = options.indexOf option
@@ -141,12 +141,12 @@ class Expanded
 
 		for key,i in options
 			if key in optionKeys
-				y = @y+16*i
-				line 25,y,width-200,y
+				y = @y + 16*i
+				line @x,y,width-200,y
 
 		for key,i in items
 			if key in itemKeys
-				x = 25 * (i+1)
+				x = @x + 25*i
 				line x,@y,x,@y+63*16
 
 	draw : ->
@@ -207,19 +207,15 @@ class Header
 		for item,i in items
 			text item,@xp+25+25*i,@yp+25	
 
-	mousePressed : ->
-		console.log @prompt
-		for button in @buttons
-			if button.inside() then button.click()
+	mousePressed : -> (if button.inside() then button.click()) for button in @buttons
 
 	mouseMoved : ->
 		if @yp < mouseY < @yp+250
-			snapshot = snapshots[current]
 			for item,index in items
 				if @xp+25*(index+0.5) < mouseX < @xp+25*(index+1.5) then hiliteItem = item
 
 class Items
-	constructor : (@xp,@yp) ->
+	constructor : (@x,@y) ->
 
 	draw : ->
 		@drawOptions snapshots[current].entries
@@ -237,7 +233,7 @@ class Items
 				i = items.indexOf key
 				for option,j in row.split ' '
 					fill if option == hiliteOption then 'white' else 'black'
-					text option,@xp+25+25*i,@yp+50+25*j
+					text option,@x + 25*i,@y + 25*j
 
 class Snapshots
 	constructor : (@x,@y) ->
@@ -280,8 +276,8 @@ setup = ->
 	chessboard = new Chessboard 100, 400
 	objSnapshots = new Snapshots 1180, 38
 	explanation = new Explanation 550,400
-	objItems = new Items 0,20
-	expanded = new Expanded 20,61
+	objItems = new Items 0+25,20+50
+	expanded = new Expanded 25,61
 
 draw = ->
 	if not objHeader then return
